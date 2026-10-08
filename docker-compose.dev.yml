@@ -1,0 +1,16 @@
+# Local development: only Postgres, on port 5433 (5432 is often taken by a local install).
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: voyages
+      POSTGRES_PASSWORD: voyages
+      POSTGRES_DB: voyages
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+volumes:
+  db-data:

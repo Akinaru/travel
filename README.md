@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Voyages
 
-## Getting Started
+Application web pour préparer et partager des voyages : réservations, programme jour par jour,
+documents (visa, billets, passeport), démarches avec suivi, idées de destination votées à deux.
 
-First, run the development server:
+Stack : Next.js 16, Postgres (Drizzle ORM), Better Auth (email + mot de passe, Google).
+
+## Démarrer en local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+cp .env.example .env                       # puis remplir BETTER_AUTH_SECRET (openssl rand -base64 32)
+docker compose -f docker-compose.dev.yml up -d   # Postgres sur le port 5433
+pnpm install
+pnpm db:migrate                            # nécessite DATABASE_URL dans l'environnement
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir http://localhost:3000 et créer un compte.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Photos automatiques
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Destination, idées, ville d'arrivée d'un vol : photo de l'article Wikivoyage (repli sur Wikipédia).
+- Logement ou activité avec un lien : image de l'annonce (`og:image`). Si le site la bloque, photo de la ville.
 
-## Learn More
+Aucune clé d'API n'est nécessaire. Les liens saisis sont récupérés côté serveur avec un blocage des
+adresses internes (voir `src/lib/images.ts`).
 
-To learn more about Next.js, take a look at the following resources:
+## Documents
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Les fichiers (PDF, photos, 15 Mo max) sont stockés dans `UPLOAD_DIR`, hors du dossier public.
+Ils ne sont servis que par `/api/documents/[id]`, après vérification que l'utilisateur est membre du voyage.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Déployer sur Coolify
 
-## Deploy on Vercel
+1. **+ New → Private Repository (with GitHub App)** (ou **Public Repository** si le dépôt est public),
+   branche `main`, **Build Pack : Docker Compose**, fichier `/docker-compose.yml`.
+2. Dans l'onglet **Environment Variables** :
+   - `POSTGRES_PASSWORD` : mot de passe fort (`openssl rand -base64 24`)
+   - `BETTER_AUTH_SECRET` : `openssl rand -base64 32`
+   - `BETTER_AUTH_URL` : l'URL publique, ex. `https://voyages.mondomaine.fr`
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` : facultatif
+3. Dans la configuration du service **app**, renseigner le domaine avec le port : `https://voyages.mondomaine.fr:3000`
+   (Coolify route le domaine vers le port 3000 du conteneur et gère le certificat HTTPS).
+4. **Deploy**. Les migrations s'appliquent au démarrage du conteneur.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+La base n'est pas exposée sur Internet. Les volumes `db-data` (base) et `uploads` (documents) sont
+conservés entre deux déploiements : pensez à activer les sauvegardes de Coolify.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Connexion Google
+
+Dans Google Cloud Console, créer un identifiant OAuth « Application Web » avec l'URI de redirection
+`${BETTER_AUTH_URL}/api/auth/callback/google`. Sans ces variables, le bouton Google est masqué.
+
+## Commandes
+
+| Commande | Rôle |
+| --- | --- |
+| `pnpm dev` | Serveur de développement |
+| `pnpm db:generate` | Générer une migration après modification de `src/db/schema.ts` |
+| `pnpm db:migrate` | Appliquer les migrations |
+| `pnpm lint` | ESLint |

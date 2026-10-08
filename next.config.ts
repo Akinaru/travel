@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  output: "standalone",
+  experimental: {
+    // Documents (passport scans, PDF tickets) are uploaded through Server Actions.
+    serverActions: { bodySizeLimit: "16mb" },
+  },
   turbopack: {
     rules: {
       "*.css": {
