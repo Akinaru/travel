@@ -8,36 +8,55 @@ import type { ActionState } from "@/components/forms";
 import { db } from "@/db";
 import { tripMembers, trips } from "@/db/schema";
 import { deleteTripWithFiles } from "@/lib/documents";
-import { firstError, formObject, optionalDate, optionalText, requiredText } from "@/lib/forms";
+import { firstError, formObject, optionalAmount, optionalDate, optionalText, requiredText } from "@/lib/forms";
 import { lookupPlace } from "@/lib/images";
 import { requireTrip, requireUser } from "@/lib/session";
 
 const tripSchema = z
   .object({
     title: requiredText("Donnez un nom au voyage"),
+    // "idee": still comparing destinations; "decide": the destination is known.
+    phase: z.enum(["idee", "decide"]).default("idee"),
     destination: optionalText,
     startDate: optionalDate,
     endDate: optionalDate,
   })
+  .refine((t) => t.phase === "idee" || t.destination, "Indiquez la destination")
   .refine((t) => !t.startDate || !t.endDate || t.endDate >= t.startDate, "Le retour doit être après le départ");
 
 export async function createTrip(_: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const parsed = tripSchema.safeParse(formObject(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
-  const data = parsed.data;
+  const { phase, ...data } = parsed.data;
+  const destination = phase === "decide" ? data.destination : null;
 
-  const coverUrl = data.destination ? (await lookupPlace(data.destination)).imageUrl : null;
+  const coverUrl = destination ? (await lookupPlace(destination)).imageUrl : null;
   const tripId = await db.transaction(async (tx) => {
     const [trip] = await tx
       .insert(trips)
-      .values({ ...data, coverUrl, status: data.destination ? "preparation" : "idee", createdBy: user.id })
+      .values({ ...data, destination, coverUrl, status: destination ? "preparation" : "idee", createdBy: user.id })
       .returning({ id: trips.id });
     await tx.insert(tripMembers).values({ tripId: trip.id, userId: user.id, role: "owner" });
     return trip.id;
   });
 
-  redirect(data.destination ? `/voyages/${tripId}` : `/voyages/${tripId}/idees`);
+  redirect(destination ? `/voyages/${tripId}` : `/voyages/${tripId}/idees`);
+}
+
+const basisSchema = z
+  .object({ travelers: optionalAmount, nights: optionalAmount })
+  .refine((b) => b.travelers === null || (b.travelers >= 1 && b.travelers <= 50), "Nombre de voyageurs invalide")
+  .refine((b) => b.nights === null || b.nights <= 365, "Nombre de nuits invalide");
+
+// Number of travellers and nights used to turn per-person / per-night prices into a trip total.
+export async function updateEstimateBasis(tripId: string, _: ActionState, formData: FormData): Promise<ActionState> {
+  const { trip } = await requireTrip(tripId);
+  const parsed = basisSchema.safeParse(formObject(formData));
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  await db.update(trips).set(parsed.data).where(eq(trips.id, trip.id));
+  revalidatePath(`/voyages/${trip.id}`, "layout");
+  return undefined;
 }
 
 const updateSchema = z

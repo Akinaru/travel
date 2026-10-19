@@ -100,7 +100,7 @@ export default async function TripSettingsPage({ params }: PageProps<"/voyages/[
             </div>
             <Field label="Statut">
               <select name="status" defaultValue={trip.status} className={inputClass}>
-                <option value="idee">Idée</option>
+                <option value="idee">En réflexion (comparer des destinations)</option>
                 <option value="preparation">En préparation</option>
                 <option value="confirme">Confirmé</option>
                 <option value="termine">Terminé</option>

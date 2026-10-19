@@ -17,6 +17,13 @@ pnpm dev
 
 Ouvrir http://localhost:3000 et créer un compte.
 
+## Choisir une destination
+
+Un voyage créé avec « On cherche encore où aller » reste en phase de réflexion : on y ajoute autant de destinations
+que l'on veut, avec pour chacune des prix en fourchette (vol 400 – 600 € par personne, logement par nuit, voiture par
+jour…). Le budget total de chaque piste est calculé à partir du nombre de voyageurs et de nuits. Une fois une
+destination choisie, le voyage passe en préparation et les onglets réservations, documents, démarches apparaissent.
+
 ## Photos automatiques
 
 - Destination, idées, ville d'arrivée d'un vol : photo de l'article Wikivoyage (repli sur Wikipédia).

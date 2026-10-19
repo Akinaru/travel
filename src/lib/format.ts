@@ -66,3 +66,13 @@ export function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
   return `${(bytes / 1024 / 1024).toFixed(1).replace(".", ",")} Mo`;
 }
+
+const euros = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+
+export function formatEuros(amount: number) {
+  return euros.format(amount);
+}
+
+export function formatEuroRange(min: number, max: number) {
+  return min === max ? euros.format(min) : `${euros.format(min).replace(/\s€$/, "")} – ${euros.format(max)}`;
+}

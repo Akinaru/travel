@@ -1,19 +1,23 @@
 import { asc, count, eq, sql } from "drizzle-orm";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BookingStatus, KindIcon } from "@/components/booking-visuals";
 import { Cover } from "@/components/cover";
 import { ChevronIcon, FileIcon, FolderIcon, HomeIcon, PinIcon, PlaneIcon } from "@/components/icons";
 import { SectionTitle } from "@/components/ui";
 import { db } from "@/db";
-import { activities, bookings, checklistItems, checklists, documents } from "@/db/schema";
-import { formatDateTime, formatShortDate } from "@/lib/format";
+import { activities, bookings, checklistItems, checklists, documents, ideaCosts } from "@/db/schema";
+import { estimate, estimateBasis } from "@/lib/estimate";
+import { formatDateTime, formatEuroRange, formatShortDate } from "@/lib/format";
+import { membersOf } from "@/lib/queries";
 import { requireTrip } from "@/lib/session";
 
 export default async function TripOverviewPage({ params }: PageProps<"/voyages/[id]">) {
   const { id } = await params;
   const { trip } = await requireTrip(id);
+  if (trip.status === "idee") redirect(`/voyages/${trip.id}/idees`);
 
-  const [lists, tripBookings, [{ docCount }], [{ activityCount }]] = await Promise.all([
+  const [lists, tripBookings, [{ docCount }], [{ activityCount }], budget] = await Promise.all([
     db
       .select({
         id: checklists.id,
@@ -35,6 +39,7 @@ export default async function TripOverviewPage({ params }: PageProps<"/voyages/[
       .orderBy(sql`${bookings.startAt} asc nulls last`),
     db.select({ docCount: count() }).from(documents).where(eq(documents.tripId, trip.id)),
     db.select({ activityCount: count() }).from(activities).where(eq(activities.tripId, trip.id)),
+    chosenBudget(trip),
   ]);
 
   const base = `/voyages/${trip.id}`;
@@ -47,6 +52,15 @@ export default async function TripOverviewPage({ params }: PageProps<"/voyages/[
 
   return (
     <div className="flex flex-col gap-3 pt-2">
+      {budget && (
+        <Link href={`${base}/idee/${trip.chosenIdeaId}`} className="flex items-center gap-3 rounded-2xl border border-line p-4 transition hover:bg-surface">
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-[13px] text-muted">Budget estimé</span>
+            <span className="text-lg font-bold">{formatEuroRange(budget.min, budget.max)}</span>
+          </span>
+          <ChevronIcon size={18} className="text-muted" />
+        </Link>
+      )}
       {lists.map((list) => {
         const pct = list.total ? Math.round((list.done / list.total) * 100) : 0;
         return (
@@ -122,4 +136,14 @@ export default async function TripOverviewPage({ params }: PageProps<"/voyages/[
       )}
     </div>
   );
+}
+
+// Estimate of the destination picked after comparing ideas, if it had prices.
+async function chosenBudget(trip: Awaited<ReturnType<typeof requireTrip>>["trip"]) {
+  if (!trip.chosenIdeaId) return null;
+  const [costs, members] = await Promise.all([
+    db.select().from(ideaCosts).where(eq(ideaCosts.ideaId, trip.chosenIdeaId)),
+    membersOf([trip.id]),
+  ]);
+  return costs.length ? estimate(costs, estimateBasis(trip, members.length)) : null;
 }

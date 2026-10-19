@@ -7,7 +7,7 @@ export function TripTabs({ tripId, showIdeas }: { tripId: string; showIdeas: boo
   const pathname = usePathname();
   const base = `/voyages/${tripId}`;
   const tabs = [
-    ...(showIdeas ? [{ href: `${base}/idees`, label: "Idées" }] : []),
+    ...(showIdeas ? [{ href: `${base}/idees`, label: "Destinations" }] : []),
     { href: base, label: "Aperçu" },
     { href: `${base}/programme`, label: "Programme" },
     { href: `${base}/reservations`, label: "Réservations" },

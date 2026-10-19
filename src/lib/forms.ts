@@ -52,3 +52,12 @@ export function formObject(formData: FormData) {
 export function firstError(error: z.ZodError) {
   return error.issues[0]?.message ?? "Formulaire invalide";
 }
+
+// Whole euros or counts typed by hand: "1 200", "450,50" (rounded). Empty becomes null.
+export const optionalAmount = z
+  .string()
+  .transform((v) => v.replace(/[\s €]/g, "").replace(",", "."))
+  .refine((v) => v === "" || (/^\d+(\.\d+)?$/.test(v) && Number(v) <= 10_000_000), "Montant invalide")
+  .transform((v) => (v === "" ? null : Math.round(Number(v))))
+  .nullish()
+  .transform((v) => v ?? null);

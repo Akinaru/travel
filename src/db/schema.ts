@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   boolean,
   date,
   index,
@@ -71,6 +72,9 @@ export const bookingKind = pgEnum("booking_kind", ["vol", "train", "bus", "voitu
 export const bookingStatus = pgEnum("booking_status", ["option", "reserve", "annule"]);
 export const itemStatus = pgEnum("item_status", ["todo", "progress", "done"]);
 export const documentCategory = pgEnum("document_category", ["identite", "billets", "visa", "logement", "autre"]);
+export const costCategory = pgEnum("cost_category", ["vol", "logement", "transport", "activites", "repas", "autre"]);
+// How an estimated amount scales: once for the group, per traveller, per night, per day, per traveller per day.
+export const costUnit = pgEnum("cost_unit", ["groupe", "personne", "nuit", "jour", "personne_jour"]);
 
 export const trips = pgTable("trips", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -81,6 +85,10 @@ export const trips = pgTable("trips", {
   startDate: date("start_date"),
   endDate: date("end_date"),
   status: tripStatus("status").notNull().default("preparation"),
+  // Basis for budget estimates while comparing destinations. Null: members count / length of the dates.
+  travelers: integer("travelers"),
+  nights: integer("nights"),
+  chosenIdeaId: uuid("chosen_idea_id").references((): AnyPgColumn => destinationIdeas.id, { onDelete: "set null" }),
   createdBy: text("created_by")
     .notNull()
     .references(() => user.id),
@@ -121,12 +129,32 @@ export const destinationIdeas = pgTable("destination_ideas", {
     .references(() => trips.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   summary: text("summary"),
+  notes: text("notes"),
   imageUrl: text("image_url"),
   createdBy: text("created_by")
     .notNull()
     .references(() => user.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// Rough price ranges for a destination idea, in whole euros.
+export const ideaCosts = pgTable(
+  "idea_costs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ideaId: uuid("idea_id")
+      .notNull()
+      .references(() => destinationIdeas.id, { onDelete: "cascade" }),
+    category: costCategory("category").notNull(),
+    label: text("label"),
+    minAmount: integer("min_amount").notNull(),
+    maxAmount: integer("max_amount").notNull(),
+    unit: costUnit("unit").notNull(),
+    url: text("url"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("idea_costs_idea_idx").on(t.ideaId)],
+);
 
 export const ideaVotes = pgTable(
   "idea_votes",
@@ -249,3 +277,4 @@ export type Trip = typeof trips.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Activity = typeof activities.$inferSelect;
 export type DocumentRow = typeof documents.$inferSelect;
+export type IdeaCost = typeof ideaCosts.$inferSelect;

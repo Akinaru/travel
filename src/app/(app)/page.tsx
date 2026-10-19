@@ -8,7 +8,7 @@ import { daysBetween, formatRange, formatShortDate, todayISO } from "@/lib/forma
 import { tripsForUser, upcomingTasks } from "@/lib/queries";
 import { requireUser } from "@/lib/session";
 
-const STATUS = { idee: "Idée", preparation: "En préparation", confirme: "Confirmé", termine: "Terminé" };
+const STATUS = { idee: "En réflexion", preparation: "En préparation", confirme: "Confirmé", termine: "Terminé" };
 
 function countdown(start: string | null, end: string | null, today: string) {
   if (!start) return null;
@@ -106,7 +106,7 @@ export default async function HomePage() {
               return (
                 <Link
                   key={trip.id}
-                  href={trip.destination ? `/voyages/${trip.id}` : `/voyages/${trip.id}/idees`}
+                  href={trip.status === "idee" ? `/voyages/${trip.id}/idees` : `/voyages/${trip.id}`}
                   className="group flex flex-col gap-3"
                 >
                   <div className="relative overflow-hidden rounded-3xl">

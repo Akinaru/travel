@@ -16,7 +16,9 @@ export default async function TripLayout({ children, params }: LayoutProps<"/voy
   const { trip } = await requireTrip(id);
   const members = await membersOf([trip.id]);
   const base = `/voyages/${trip.id}`;
-  const subtitle = [trip.destination ?? "Destination à choisir", formatRange(trip.startDate, trip.endDate)].join(" · ");
+  // While destinations are being compared, bookings, documents and the rest are out of the way.
+  const deciding = trip.status === "idee";
+  const subtitle = [trip.destination ?? (deciding ? "En réflexion" : "Destination à choisir"), formatRange(trip.startDate, trip.endDate)].join(" · ");
   const quickAdd = [
     { href: `${base}/reservation/nouveau?type=vol`, label: "Un billet", icon: <PlaneIcon size={20} /> },
     { href: `${base}/reservation/nouveau?type=logement`, label: "Un logement", icon: <HomeIcon size={20} /> },
@@ -75,7 +77,11 @@ export default async function TripLayout({ children, params }: LayoutProps<"/voy
 
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-12">
           <div className="min-w-0">
-            <TripTabs tripId={trip.id} showIdeas={!trip.destination || trip.status === "idee"} />
+            {deciding ? (
+              <h2 className="pt-5 pb-1 text-lg font-bold md:pt-6">Où partir ?</h2>
+            ) : (
+              <TripTabs tripId={trip.id} showIdeas={!trip.destination || trip.chosenIdeaId !== null} />
+            )}
             <div className="md:pt-2">{children}</div>
           </div>
 
@@ -92,21 +98,23 @@ export default async function TripLayout({ children, params }: LayoutProps<"/voy
                 </div>
                 <Avatars people={members} size={34} />
               </div>
-              <div className="flex flex-col gap-2 border-t border-line pt-5">
-                <span className="text-sm font-semibold">Ajouter</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {quickAdd.map((q) => (
-                    <Link
-                      key={q.label}
-                      href={q.href}
-                      className="flex h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border border-line text-sm font-semibold transition hover:border-ink"
-                    >
-                      <span className="text-accent">{q.icon}</span>
-                      {q.label}
-                    </Link>
-                  ))}
+              {!deciding && (
+                <div className="flex flex-col gap-2 border-t border-line pt-5">
+                  <span className="text-sm font-semibold">Ajouter</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {quickAdd.map((q) => (
+                      <Link
+                        key={q.label}
+                        href={q.href}
+                        className="flex h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border border-line text-sm font-semibold transition hover:border-ink"
+                      >
+                        <span className="text-accent">{q.icon}</span>
+                        {q.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               <Link href={`${base}/reglages#partage`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-ink text-[15px] font-semibold text-white hover:bg-black">
                 <ShareIcon size={18} /> Inviter quelqu&apos;un
               </Link>
