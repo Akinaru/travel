@@ -35,6 +35,9 @@ export default async function NewTripPage() {
             <input name="destination" placeholder="Ex. : Tromsø" className={inputClass} />
           </Field>
         </div>
+        <Field label="Nombre de voyageurs" hint="Sert à calculer le budget par personne.">
+          <input name="travelers" type="number" min={1} max={50} inputMode="numeric" defaultValue={2} className={inputClass} />
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Départ">
             <input name="startDate" type="date" className={inputClass} />

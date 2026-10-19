@@ -1,8 +1,8 @@
 import { asc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { addIdea, chooseIdea, toggleVote } from "@/actions/ideas";
-import { updateEstimateBasis } from "@/actions/trips";
 import { Cover } from "@/components/cover";
+import { EstimateBasisForm } from "@/components/estimate-basis-form";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { ChevronIcon, HeartIcon, PinIcon } from "@/components/icons";
 import { Badge, btn, inputClass } from "@/components/ui";
@@ -44,22 +44,7 @@ export default async function IdeasPage({ params }: PageProps<"/voyages/[id]/ide
           : "Les pistes étudiées avant de choisir, avec leur budget estimé."}
       </p>
 
-      <ActionForm action={updateEstimateBasis.bind(null, trip.id)} className="flex flex-col gap-2 rounded-2xl bg-surface p-4">
-        <span className="text-sm font-semibold">Base de calcul du budget</span>
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="flex w-28 flex-col gap-1 text-[13px] text-muted">
-            Voyageurs
-            <input name="travelers" inputMode="numeric" defaultValue={basis.travelers} className={inputClass} />
-          </label>
-          <label className="flex w-28 flex-col gap-1 text-[13px] text-muted">
-            Nuits
-            <input name="nights" inputMode="numeric" defaultValue={basis.nights ?? ""} placeholder="7" className={inputClass} />
-          </label>
-          <SubmitButton className={btn.secondary} pendingLabel="…">
-            Recalculer
-          </SubmitButton>
-        </div>
-      </ActionForm>
+      <EstimateBasisForm tripId={trip.id} basis={basis} />
 
       <ActionForm action={addIdea.bind(null, trip.id)} className="flex flex-col gap-2">
         <div className="flex gap-2">
@@ -110,11 +95,10 @@ export default async function IdeasPage({ params }: PageProps<"/voyages/[id]/ide
                         <span className="text-sm text-muted">Budget estimé</span>
                         <span className="text-lg font-bold">{formatEuroRange(total.min, total.max)}</span>
                       </span>
-                      {basis.travelers > 1 && (
-                        <span className="-mt-1.5 text-right text-[13px] text-muted">
-                          soit {formatEuroRange(total.perPerson.min, total.perPerson.max)} / pers.
-                        </span>
-                      )}
+                      <span className="-mt-1.5 text-right text-[13px] text-muted">
+                        soit {formatEuroRange(total.perPerson.min, total.perPerson.max)} / pers. ({basis.travelers} voyageur
+                        {basis.travelers > 1 ? "s" : ""})
+                      </span>
                       <ul className="flex flex-col gap-1 border-t border-line pt-2 text-[13px]">
                         {ideaCostList.map((c) => {
                           const line = lineTotal(c, basis);

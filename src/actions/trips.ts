@@ -20,8 +20,10 @@ const tripSchema = z
     destination: optionalText,
     startDate: optionalDate,
     endDate: optionalDate,
+    travelers: optionalAmount,
   })
   .refine((t) => t.phase === "idee" || t.destination, "Indiquez la destination")
+  .refine((t) => t.travelers === null || (t.travelers >= 1 && t.travelers <= 50), "Nombre de voyageurs invalide")
   .refine((t) => !t.startDate || !t.endDate || t.endDate >= t.startDate, "Le retour doit être après le départ");
 
 export async function createTrip(_: ActionState, formData: FormData): Promise<ActionState> {

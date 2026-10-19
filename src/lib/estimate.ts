@@ -11,7 +11,7 @@ export const COST_CATEGORIES = {
 } as const;
 
 export const COST_UNITS = {
-  groupe: "pour le groupe",
+  groupe: "au total, pour tout le séjour",
   personne: "par personne",
   nuit: "par nuit",
   jour: "par jour",
@@ -21,7 +21,7 @@ export const COST_UNITS = {
 // Unit pre-selected when picking a category in the form.
 export const DEFAULT_UNIT: Record<IdeaCost["category"], IdeaCost["unit"]> = {
   vol: "personne",
-  logement: "nuit",
+  logement: "groupe",
   transport: "jour",
   activites: "personne",
   repas: "personne_jour",
@@ -35,7 +35,8 @@ export function estimateBasis(
   memberCount: number,
 ): EstimateBasis {
   const fromDates = trip.startDate && trip.endDate ? daysBetween(trip.startDate, trip.endDate) : null;
-  return { travelers: trip.travelers ?? Math.max(memberCount, 1), nights: trip.nights ?? fromDates };
+  // Most trips are planned for two, even before the second person joins the app.
+  return { travelers: trip.travelers ?? Math.max(memberCount, 2), nights: trip.nights ?? fromDates };
 }
 
 // How many times the amount counts; null when the trip length is needed but unknown.
@@ -49,9 +50,15 @@ export function multiplier(unit: IdeaCost["unit"], { travelers, nights }: Estima
   return travelers * (nights + 1);
 }
 
+export function perPerson(range: { min: number; max: number }, { travelers }: EstimateBasis) {
+  return { min: Math.round(range.min / travelers), max: Math.round(range.max / travelers) };
+}
+
 export function lineTotal(cost: Pick<IdeaCost, "minAmount" | "maxAmount" | "unit">, basis: EstimateBasis) {
   const n = multiplier(cost.unit, basis);
-  return n === null ? null : { min: cost.minAmount * n, max: cost.maxAmount * n };
+  if (n === null) return null;
+  const total = { min: cost.minAmount * n, max: cost.maxAmount * n };
+  return { ...total, perPerson: perPerson(total, basis) };
 }
 
 // Sum of the lines; `missing` counts lines left out because the trip length is unknown.
@@ -67,5 +74,5 @@ export function estimate(costs: Pick<IdeaCost, "minAmount" | "maxAmount" | "unit
       max += total.max;
     }
   }
-  return { min, max, missing, perPerson: { min: Math.round(min / basis.travelers), max: Math.round(max / basis.travelers) } };
+  return { min, max, missing, perPerson: perPerson({ min, max }, basis) };
 }

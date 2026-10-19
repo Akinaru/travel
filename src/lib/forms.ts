@@ -36,6 +36,14 @@ export const optionalUrl = z
   .transform((v) => v ?? null)
   .refine((v) => v === null || /^https?:\/\/[^\s]+$/i.test(v), "Le lien doit commencer par http:// ou https://");
 
+// Same as optionalUrl, but a pasted "airbnb.fr/rooms/…" gets https:// instead of being refused.
+export const lenientUrl = z
+  .string()
+  .trim()
+  .transform((v) => (v && !/^https?:\/\//i.test(v) ? `https://${v}` : v))
+  .nullish()
+  .pipe(optionalUrl);
+
 export const optionalTime = z
   .string()
   .regex(/^(\d{2}:\d{2})?$/, "Heure invalide")

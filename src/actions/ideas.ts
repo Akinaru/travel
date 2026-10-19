@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { ActionState } from "@/components/forms";
 import { db } from "@/db";
 import { destinationIdeas, ideaCosts, ideaVotes, trips } from "@/db/schema";
-import { firstError, formObject, optionalAmount, optionalText, optionalUrl, requiredText } from "@/lib/forms";
+import { firstError, formObject, lenientUrl, optionalAmount, optionalText, requiredText } from "@/lib/forms";
 import { lookupPlace } from "@/lib/images";
 import { requireTrip } from "@/lib/session";
 
@@ -65,7 +65,7 @@ const costSchema = z
     minAmount: optionalAmount,
     maxAmount: optionalAmount,
     unit: z.enum(["groupe", "personne", "nuit", "jour", "personne_jour"]),
-    url: optionalUrl,
+    url: lenientUrl,
   })
   .refine((c) => c.minAmount !== null, "Indiquez un prix")
   .transform((c) => ({ ...c, minAmount: c.minAmount!, maxAmount: c.maxAmount ?? c.minAmount! }))

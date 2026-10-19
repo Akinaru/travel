@@ -69,7 +69,7 @@ export function CostFields({ cost }: { cost?: IdeaCost }) {
           />
         </Field>
       </div>
-      <Field label="Le prix s'entend">
+      <Field label="Ce prix est" hint="Ex. : Airbnb à 400 € la semaine → « au total, pour tout le séjour ». Vol à 500 € par tête → « par personne ».">
         <select ref={unitRef} name="unit" defaultValue={cost?.unit ?? DEFAULT_UNIT.vol} className={inputClass}>
           {Object.entries(COST_UNITS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -79,7 +79,7 @@ export function CostFields({ cost }: { cost?: IdeaCost }) {
         </select>
       </Field>
       <Field label="Lien" hint="Recherche de vols, annonce… pour retrouver la source.">
-        <input name="url" type="url" defaultValue={cost?.url ?? ""} placeholder="https://" className={inputClass} />
+        <input name="url" inputMode="url" autoCapitalize="none" defaultValue={cost?.url ?? ""} placeholder="https://" className={inputClass} />
       </Field>
     </>
   );

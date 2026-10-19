@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { addCost, deleteCost, deleteIdea, updateCost, updateIdea } from "@/actions/ideas";
 import { Cover } from "@/components/cover";
 import { CostFields } from "@/components/cost-fields";
+import { EstimateBasisForm } from "@/components/estimate-basis-form";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { ExternalIcon, PinIcon, TrashIcon } from "@/components/icons";
 import { btn, Container, Field, inputClass, PageHeader, SectionTitle } from "@/components/ui";
@@ -34,20 +35,29 @@ export default async function IdeaPage({ params }: PageProps<"/voyages/[id]/idee
       <div className="flex flex-col gap-6 px-5 pt-2 pb-12">
         <Cover src={idea.imageUrl} alt={idea.name} className="h-44 w-full rounded-3xl" fallback={<PinIcon size={26} />} />
 
-        <section className="flex flex-col gap-1 rounded-3xl bg-ink p-5 text-white">
-          <span className="text-sm text-white/70">Budget estimé</span>
-          <span className="text-3xl font-bold tracking-tight">{costs.length ? formatEuroRange(total.min, total.max) : "—"}</span>
-          <span className="text-sm text-white/70">
-            {basis.travelers} voyageur{basis.travelers > 1 ? "s" : ""} · {nightsLabel}
-            {costs.length > 0 && basis.travelers > 1 && ` · ${formatEuroRange(total.perPerson.min, total.perPerson.max)} / pers.`}
-          </span>
-          {total.missing > 0 && (
-            <span className="pt-1 text-sm text-[#f7c9a6]">
-              {total.missing} poste{total.missing > 1 ? "s" : ""} non compté{total.missing > 1 ? "s" : ""} : indiquez le nombre de nuits
-              sur la page des idées.
+        <section className="grid grid-cols-2 gap-x-px overflow-hidden rounded-3xl bg-white/15 text-white">
+          <div className="flex flex-col gap-1 bg-ink p-5">
+            <span className="text-sm text-white/70">Budget total</span>
+            <span className="text-xl font-bold tracking-tight sm:text-2xl">{costs.length ? formatEuroRange(total.min, total.max) : "—"}</span>
+          </div>
+          <div className="flex flex-col gap-1 bg-ink p-5">
+            <span className="text-sm text-white/70">Par personne</span>
+            <span className="text-xl font-bold tracking-tight sm:text-2xl">
+              {costs.length ? formatEuroRange(total.perPerson.min, total.perPerson.max) : "—"}
             </span>
-          )}
+          </div>
+          <span className="col-span-2 bg-ink px-5 pb-4 text-sm text-white/70">
+            {basis.travelers} voyageur{basis.travelers > 1 ? "s" : ""} · {nightsLabel}
+            {total.missing > 0 && (
+              <span className="block pt-1 text-[#f7c9a6]">
+                {total.missing} poste{total.missing > 1 ? "s" : ""} non compté{total.missing > 1 ? "s" : ""} : indiquez le nombre de
+                nuits ci-dessous.
+              </span>
+            )}
+          </span>
         </section>
+
+        <EstimateBasisForm tripId={trip.id} basis={basis} />
 
         <section className="flex flex-col gap-3">
           <SectionTitle>Postes de dépense</SectionTitle>
@@ -57,7 +67,11 @@ export default async function IdeaPage({ params }: PageProps<"/voyages/[id]/idee
           {costs.map((c) => {
             const line = lineTotal(c, basis);
             return (
-              <details key={c.id} className="group rounded-2xl border border-line open:border-ink">
+              // Keyed on the values too, so the editor closes once a change is saved.
+              <details
+                key={[c.id, c.category, c.label, c.minAmount, c.maxAmount, c.unit, c.url].join("|")}
+                className="group rounded-2xl border border-line open:border-ink"
+              >
                 <summary className="flex cursor-pointer list-none items-center gap-3 p-3.5 [&::-webkit-details-marker]:hidden">
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate text-[15px] font-semibold">{c.label ?? COST_CATEGORIES[c.category]}</span>
@@ -66,9 +80,14 @@ export default async function IdeaPage({ params }: PageProps<"/voyages/[id]/idee
                       {formatEuroRange(c.minAmount, c.maxAmount)} {COST_UNITS[c.unit]}
                     </span>
                   </span>
-                  <span className="shrink-0 text-right text-[15px] font-bold">
-                    {line ? formatEuroRange(line.min, line.max) : <span className="text-sm font-medium text-warm-strong">durée ?</span>}
-                  </span>
+                  {line ? (
+                    <span className="flex shrink-0 flex-col text-right">
+                      <span className="text-[15px] font-bold">{formatEuroRange(line.min, line.max)}</span>
+                      <span className="text-[13px] text-muted">{formatEuroRange(line.perPerson.min, line.perPerson.max)} / pers.</span>
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-sm font-medium text-warm-strong">durée ?</span>
+                  )}
                 </summary>
                 <div className="flex flex-col gap-3 border-t border-line p-3.5">
                   {c.url && (
@@ -77,6 +96,7 @@ export default async function IdeaPage({ params }: PageProps<"/voyages/[id]/idee
                     </a>
                   )}
                   <ActionForm action={updateCost.bind(null, trip.id, c.id)} className="flex flex-col gap-3">
+                    <span className="text-sm font-semibold">Modifier</span>
                     <CostFields cost={c} />
                     <SubmitButton className={btn.primary} pendingLabel="Enregistrement…">
                       Enregistrer
@@ -92,15 +112,13 @@ export default async function IdeaPage({ params }: PageProps<"/voyages/[id]/idee
             );
           })}
 
-          <details id="ajouter" className="rounded-2xl" open={costs.length === 0}>
-            <summary className={`${btn.dashed} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>+ Ajouter un prix</summary>
-            <ActionForm action={addCost.bind(null, trip.id, idea.id)} className="flex flex-col gap-3 pt-3">
-              <CostFields />
-              <SubmitButton className={btn.primary} pendingLabel="Ajout…">
-                Ajouter
-              </SubmitButton>
-            </ActionForm>
-          </details>
+          <ActionForm action={addCost.bind(null, trip.id, idea.id)} className="flex flex-col gap-3 rounded-2xl border-[1.5px] border-dashed border-[#c9c4bb] p-4">
+            <span id="ajouter" className="scroll-mt-4 text-[15px] font-bold">Ajouter un prix</span>
+            <CostFields />
+            <SubmitButton className={btn.primary} pendingLabel="Ajout…">
+              Ajouter ce prix
+            </SubmitButton>
+          </ActionForm>
         </section>
 
         <section className="flex flex-col gap-3">
