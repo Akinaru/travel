@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Modal } from "./modal";
+import { AppVersion } from "./ui";
 
 export function AccountButton({ name, email }: { name: string; email: string }) {
   const router = useRouter();
@@ -38,6 +39,7 @@ export function AccountButton({ name, email }: { name: string; email: string }) 
             Se déconnecter
           </button>
         </div>
+        <AppVersion />
       </Modal>
     </>
   );

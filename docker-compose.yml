@@ -1,7 +1,10 @@
 # Production (Coolify). Local development uses docker-compose.dev.yml.
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-}
     restart: unless-stopped
     depends_on:
       db:

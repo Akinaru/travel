@@ -84,6 +84,14 @@ export function EmptyState({ icon, title, text, action }: { icon: ReactNode; tit
   );
 }
 
+export function AppVersion({ className = "" }: { className?: string }) {
+  return (
+    <p className={`rounded-xl bg-surface px-3 py-2 text-center font-mono text-[13px] font-semibold text-ink ${className}`}>
+      {process.env.APP_VERSION}
+    </p>
+  );
+}
+
 export function Container({ children, className = "", wide = false }: { children: ReactNode; className?: string; wide?: boolean }) {
   return <div className={`mx-auto w-full ${wide ? "max-w-6xl md:px-6" : "max-w-2xl"} ${className}`}>{children}</div>;
 }

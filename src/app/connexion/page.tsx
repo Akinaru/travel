@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AppVersion } from "@/components/ui";
 import { googleEnabled } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 import { LoginForm } from "./login-form";
@@ -19,6 +20,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/connexion"
         <p className="text-muted">Billets, logements, documents et programme, à préparer à deux.</p>
       </div>
       <LoginForm next={next} googleEnabled={googleEnabled} />
+      <AppVersion />
     </main>
   );
 }
